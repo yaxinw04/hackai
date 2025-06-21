@@ -1,0 +1,40 @@
+{
+  "name": "youtube-shorts-service",
+  "version": "1.0.0",
+  "description": "Full-stack YouTube to Shorts conversion service",
+  "private": true,
+  "scripts": {
+    "start": "./start.sh",
+    "dev": "./start.sh",
+    "setup": "./setup.sh",
+    "setup:minimal": "./setup-minimal.sh",
+    "setup:quick": "npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd backend && python3 -m venv venv && source venv/bin/activate && pip install -e .",
+    "setup:frontend": "cd frontend && npm install",
+    "backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "frontend": "cd frontend && npm run dev",
+    "clean": "rm -rf backend/venv frontend/node_modules frontend/.next *.log",
+    "logs": "tail -f backend.log frontend.log"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "keywords": [
+    "youtube",
+    "shorts",
+    "video-processing",
+    "fastapi",
+    "nextjs",
+    "typescript"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+} 
