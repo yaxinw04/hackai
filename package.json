@@ -4,7 +4,7 @@
   "description": "Full-stack YouTube to Shorts conversion service",
   "private": true,
   "scripts": {
-    "start": "./start.sh",
+    "start": "echo 'Use docker-compose for production deployment' && exit 1",
     "dev": "./start.sh",
     "setup": "./setup.sh",
     "setup:minimal": "./setup-minimal.sh",
@@ -14,7 +14,9 @@
     "backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
     "frontend": "cd frontend && npm run dev",
     "clean": "rm -rf backend/venv frontend/node_modules frontend/.next *.log",
-    "logs": "tail -f backend.log frontend.log"
+    "logs": "tail -f backend.log frontend.log",
+    "build": "echo 'Building for production deployment'",
+    "production": "echo 'Use DigitalOcean App Platform or Docker for production'"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

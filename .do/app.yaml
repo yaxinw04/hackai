@@ -1,0 +1,106 @@
+name: youtube-shorts-ai
+services:
+  # Backend API Service
+  - name: backend
+    source_dir: /backend
+    dockerfile_path: backend/Dockerfile
+    github:
+      repo: your-username/your-repo-name
+      branch: main
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 60
+      period_seconds: 30
+      timeout_seconds: 10
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      # Basic Configuration
+      - key: ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: PORT
+        value: "8000"
+      
+      # CORS - Update with your actual domain
+      - key: CORS_ORIGINS
+        value: "${APP_URL}"
+      
+      # Storage Configuration
+      - key: USE_S3
+        value: "true"
+        scope: RUN_TIME
+      - key: AWS_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: AWS_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: AWS_REGION
+        value: "us-east-1"
+        scope: RUN_TIME
+      - key: S3_BUCKET
+        scope: RUN_TIME
+        type: SECRET
+      - key: S3_BUCKET_URL
+        scope: RUN_TIME
+        type: SECRET
+      
+      # Security
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      
+      # API Keys
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      
+      # FFmpeg
+      - key: USE_SYSTEM_FFMPEG
+        value: "1"
+      - key: FFMPEG_BINARY
+        value: "/usr/bin/ffmpeg"
+      
+      # Rate Limiting
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: MAX_JOBS_PER_USER
+        value: "5"
+      - key: MAX_VIDEO_DURATION
+        value: "3600"
+      - key: MAX_CLIP_COUNT
+        value: "10"
+
+  # Frontend Service
+  - name: frontend
+    source_dir: /frontend
+    dockerfile_path: frontend/Dockerfile
+    github:
+      repo: your-username/your-repo-name
+      branch: main
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /
+      initial_delay_seconds: 30
+      period_seconds: 30
+      timeout_seconds: 10
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: "${backend.PUBLIC_URL}"
+    routes:
+      - path: /
+    build_command: |
+      cd frontend && npm ci && npm run build 
