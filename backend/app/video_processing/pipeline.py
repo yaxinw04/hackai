@@ -105,16 +105,48 @@ def download_youtube_video(url: str, output_path: str) -> str:
             f.write("This is a demo file. Install yt-dlp for real video downloads.\n")
         return mock_path
     
+    # Enhanced yt-dlp options to bypass bot detection
     ydl_opts = {
         'format': 'best[ext=mp4]/best',
         'outtmpl': output_path,
         'noplaylist': True,
+        'sleep_interval': 1,  # Add delays between requests
+        'max_sleep_interval': 3,
+        'extract_flat': False,
+        'ignoreerrors': False,
+        'no_warnings': False,
+        'writesubtitles': False,
+        'writeautomaticsub': False,
+        # Add user agent to appear less bot-like
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        # Retry options
+        'retries': 3,
+        'file_access_retries': 3,
+        'fragment_retries': 3,
+        # Network options
+        'socket_timeout': 30,
+        # Try to use embedded player
+        'youtube_include_dash_manifest': False,
     }
     
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-    
-    return output_path
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        return output_path
+    except Exception as e:
+        error_msg = str(e)
+        print(f"❌ YouTube download failed: {error_msg}")
+        
+        # Check if it's a bot detection error
+        if "Sign in to confirm" in error_msg or "not a bot" in error_msg:
+            print("🤖 YouTube bot detection triggered")
+            print("💡 This is a common issue with YouTube's anti-bot measures")
+            print("🎭 Falling back to demo mode...")
+            raise Exception(f"YouTube bot detection: {error_msg}")
+        else:
+            # For other errors, also fall back to demo
+            print(f"🎭 Falling back to demo mode due to: {error_msg}")
+            raise Exception(f"YouTube download error: {error_msg}")
 
 
 def create_video_clip(source_video: str, start_time: float, end_time: float, output_path: str) -> str:
@@ -242,9 +274,12 @@ def create_demo_clips(job_id: str, url: str, prompt: str, output_dir: str) -> Li
             "start_time": clip['start'],
             "end_time": clip['end'],
             "duration": clip['end'] - clip['start'],
+            "startTime": f"{int(clip['start']//60):02d}:{int(clip['start']%60):02d}",
+            "endTime": f"{int(clip['end']//60):02d}:{int(clip['end']%60):02d}",
             "text": clip['text'],
             "caption": clip['caption'],
             "hashtags": clip['hashtags'],
+            "path": f"/clips/{job_id}/clips/{clip_filename}",
             "url_path": f"/clips/{job_id}/clips/{clip_filename}",
             "is_demo": True
         }
