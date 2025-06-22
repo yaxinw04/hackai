@@ -26,8 +26,8 @@ dependencies = [
     "moviepy>=1.0.3",
     "pydub>=0.25.1",
     
-    # AI/ML dependencies (versions compatible with Python 3.13)
-    "openai-whisper>=20230918",
+    # AI/ML dependencies (with Python 3.13 fallbacks)
+    "openai-whisper>=20230918; python_version<'3.13'",
     "transformers>=4.30.0",
     "openai>=1.0.0",
     "torch>=2.0.0",
@@ -35,6 +35,11 @@ dependencies = [
     # Build tools
     "setuptools<81",
     "wheel",
+    
+    # Production dependencies
+    "boto3>=1.28.0",  # AWS S3 support
+    "gunicorn>=21.0.0",  # Production WSGI server
+    "python-dotenv>=1.0.0",  # Environment variable loading
 ]
 
 [project.optional-dependencies]
@@ -42,6 +47,11 @@ dev = [
     "pytest>=7.0.0",
     "black>=23.0.0",
     "flake8>=6.0.0",
+]
+production = [
+    "boto3>=1.28.0",
+    "gunicorn>=21.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 # Local dependency on the video processor package
@@ -53,4 +63,8 @@ Homepage = "https://github.com/example/youtube-shorts"
 Repository = "https://github.com/example/youtube-shorts.git"
 
 # Note: The video_processor dependency should be installed separately
-# pip install -e ../packages/video_processor 
+# pip install -e ../packages/video_processor
+
+# Python 3.13+ users: If openai-whisper fails to install, try:
+# pip install git+https://github.com/openai/whisper.git
+# or use an older Python version (3.11 or 3.12) with: ./setup.sh --python311 
