@@ -105,6 +105,9 @@ def download_youtube_video(url: str, output_path: str) -> str:
             f.write("This is a demo file. Install yt-dlp for real video downloads.\n")
         return mock_path
     
+    print(f"🔍 Attempting to download: {url}")
+    print(f"📁 Output path template: {output_path}")
+    
     # Enhanced yt-dlp options to bypass bot detection
     ydl_opts = {
         'format': 'best[ext=mp4]/best',
@@ -137,15 +140,28 @@ def download_youtube_video(url: str, output_path: str) -> str:
             'DNT': '1',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-        }
+        },
+        # Add verbose output for debugging
+        'verbose': True
     }
     
     # Handle cookies if provided
     cookies_file = None
     try:
         from ..config import settings
-        if settings.YOUTUBE_COOKIES_CONTENT or os.getenv('YOUTUBE_COOKIES_CONTENT'):
-            cookies_content = settings.YOUTUBE_COOKIES_CONTENT or os.getenv('YOUTUBE_COOKIES_CONTENT')
+        cookies_content = None
+        
+        # Try multiple ways to get cookies
+        if hasattr(settings, 'YOUTUBE_COOKIES_CONTENT') and settings.YOUTUBE_COOKIES_CONTENT:
+            cookies_content = settings.YOUTUBE_COOKIES_CONTENT
+            print(f"🍪 Found cookies in settings")
+        elif os.getenv('YOUTUBE_COOKIES_CONTENT'):
+            cookies_content = os.getenv('YOUTUBE_COOKIES_CONTENT')
+            print(f"🍪 Found cookies in environment")
+        else:
+            print(f"⚠️ No cookies found - will attempt without authentication")
+        
+        if cookies_content and cookies_content.strip() and len(cookies_content) > 50:
             # Create temporary cookies file
             import tempfile
             cookies_fd, cookies_file = tempfile.mkstemp(suffix='.txt', prefix='youtube_cookies_')
@@ -153,29 +169,57 @@ def download_youtube_video(url: str, output_path: str) -> str:
                 with os.fdopen(cookies_fd, 'w') as f:
                     f.write(cookies_content)
                 ydl_opts['cookiefile'] = cookies_file
-                print(f"🍪 Using cookies for YouTube authentication")
+                print(f"🍪 Using cookies file: {cookies_file}")
+                print(f"🍪 Cookies length: {len(cookies_content)} characters")
             except Exception as e:
                 print(f"⚠️ Failed to write cookies file: {e}")
                 if cookies_file and os.path.exists(cookies_file):
                     os.unlink(cookies_file)
                 cookies_file = None
+        else:
+            print(f"⚠️ Cookies content too short or empty")
+            
     except Exception as e:
         print(f"⚠️ Failed to load cookies: {e}")
     
     try:
+        print(f"🚀 Starting yt-dlp with options:")
+        print(f"   - Format: {ydl_opts['format']}")
+        print(f"   - Output: {ydl_opts['outtmpl']}")
+        print(f"   - Cookies: {'Yes' if cookies_file else 'No'}")
+        print(f"   - User Agent: {ydl_opts['user_agent'][:50]}...")
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             print(f"🔍 Attempting download with enhanced options...")
+            # Try to extract info first
+            info = ydl.extract_info(url, download=False)
+            print(f"✅ Successfully extracted video info: {info.get('title', 'Unknown')}")
+            
+            # Now download
             ydl.download([url])
+            
         print(f"✅ Download successful")
-        return output_path
+        
+        # Find the actual downloaded file
+        import glob
+        pattern = output_path.replace('%(ext)s', '*')
+        downloaded_files = glob.glob(pattern)
+        if downloaded_files:
+            actual_path = downloaded_files[0]
+            print(f"📁 Downloaded file: {actual_path}")
+            return actual_path
+        else:
+            print(f"⚠️ No files found matching pattern: {pattern}")
+            return output_path.replace('%(ext)s', 'mp4')
+            
     except Exception as e:
         error_msg = str(e)
         print(f"❌ YouTube download failed: {error_msg}")
         
-        # Check if it's a bot detection error
+        # Enhanced error detection
         if any(phrase in error_msg.lower() for phrase in [
             "sign in to confirm", "not a bot", "verify you're human", 
-            "suspicious traffic", "unusual traffic"
+            "suspicious traffic", "unusual traffic", "blocked", "denied"
         ]):
             print("🤖 YouTube bot detection triggered")
             print("💡 This is a common issue with YouTube's anti-bot measures")
@@ -186,6 +230,14 @@ def download_youtube_video(url: str, output_path: str) -> str:
             print("   • Update your browser cookies")
             print("🎭 Falling back to demo mode...")
             raise Exception(f"YouTube bot detection: {error_msg}")
+        elif "failed to extract" in error_msg.lower():
+            print("🔧 YouTube extraction failed - this usually means YouTube changed their API")
+            print("💡 Possible solutions:")
+            print("   • Update yt-dlp: pip install --upgrade yt-dlp")
+            print("   • Try again in a few minutes")
+            print("   • Check if the video URL is valid and public")
+            print("🎭 Falling back to demo mode...")
+            raise Exception(f"YouTube extraction error: {error_msg}")
         else:
             # For other errors, also fall back to demo
             print(f"🎭 Falling back to demo mode due to: {error_msg}")
@@ -195,6 +247,7 @@ def download_youtube_video(url: str, output_path: str) -> str:
         if cookies_file and os.path.exists(cookies_file):
             try:
                 os.unlink(cookies_file)
+                print(f"🧹 Cleaned up cookies file")
             except Exception:
                 pass
 
