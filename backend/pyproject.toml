@@ -7,8 +7,7 @@ name = "youtube-shorts-backend"
 version = "0.1.0"
 description = "FastAPI backend for YouTube to Shorts service"
 authors = [{name = "Developer", email = "dev@example.com"}]
-license = {text = "MIT"}
-readme = "README.md"
+license = "MIT"
 requires-python = ">=3.8"
 dependencies = [
     # Core web framework
