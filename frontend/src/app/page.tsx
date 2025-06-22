@@ -1,271 +1,234 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiService, ProcessResponse, JobStatusResponse } from '../services/apiClient';
+import Link from 'next/link';
 
-// Application state types
-type AppState = 'idle' | 'processing' | 'complete' | 'error';
+export default function LandingPage() {
+  const [isLoaded, setIsLoaded] = useState(false);
 
-interface FormData {
-  url: string;
-  prompt: string;
-}
-
-export default function Home() {
-  // State management
-  const [appState, setAppState] = useState<AppState>('idle');
-  const [formData, setFormData] = useState<FormData>({ url: '', prompt: '' });
-  const [jobId, setJobId] = useState<string>('');
-  const [jobStatus, setJobStatus] = useState<JobStatusResponse | null>(null);
-  const [error, setError] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form validation
-  const isFormValid = formData.url.trim() !== '' && formData.prompt.trim() !== '';
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isFormValid || isSubmitting) return;
-
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      const response: ProcessResponse = await apiService.startProcessing(
-        formData.url,
-        formData.prompt
-      );
-      
-      setJobId(response.job_id);
-      setAppState('processing');
-      setJobStatus({
-        status: response.status,
-        message: response.message,
-        results: null
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setAppState('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Poll job status when in processing state
   useEffect(() => {
-    if (appState !== 'processing' || !jobId) return;
+    setIsLoaded(true);
+  }, []);
 
-    const pollStatus = async () => {
-      try {
-        const status = await apiService.getJobStatus(jobId);
-        setJobStatus(status);
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-pink-500/20 to-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
 
-        if (status.status === 'complete') {
-          setAppState('complete');
-        } else if (status.status === 'failed') {
-          setError(status.message);
-          setAppState('error');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to get job status');
-        setAppState('error');
-      }
-    };
-
-    // Poll immediately, then every 3 seconds
-    pollStatus();
-    const interval = setInterval(pollStatus, 3000);
-
-    return () => clearInterval(interval);
-  }, [appState, jobId]);
-
-  // Reset to start a new job
-  const handleReset = () => {
-    setAppState('idle');
-    setFormData({ url: '', prompt: '' });
-    setJobId('');
-    setJobStatus(null);
-    setError('');
-  };
-
-  // Render status indicator
-  const renderStatusIndicator = () => {
-    if (appState === 'processing' && jobStatus) {
-      return (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
-            <div>
-              <h3 className="text-lg font-medium text-blue-900">Processing...</h3>
-              <p className="text-blue-700">{jobStatus.message}</p>
-              <p className="text-sm text-blue-600 mt-1">Job ID: {jobId}</p>
+      {/* Navigation */}
+      <nav className="relative z-10 px-6 pt-8">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">YS</span>
             </div>
+            <span className="text-white font-bold text-xl">YouTube Shorts AI</span>
+          </div>
+          <div className="hidden md:flex items-center space-x-8">
+            <a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a>
+            <a href="#how-it-works" className="text-slate-300 hover:text-white transition-colors">How it Works</a>
+            <a href="#pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</a>
           </div>
         </div>
-      );
-    }
-    return null;
-  };
+      </nav>
 
-  // Render results
-  const renderResults = () => {
-    if (appState === 'complete' && jobStatus?.results && jobStatus.results.length > 0) {
-      return (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-medium text-green-900 mb-4">
-            🎉 Processing Complete!
-          </h3>
-          <p className="text-green-700 mb-4">{jobStatus.message}</p>
-          
-          <div className="space-y-4">
-            <h4 className="font-medium text-green-900">Generated Clips:</h4>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {jobStatus.results.map((clipPath, index) => (
-                <div key={index} className="bg-white rounded-lg p-4 shadow-sm border">
-                  <h5 className="font-medium text-gray-900 mb-2">
-                    Clip {index + 1}
-                  </h5>
-                  <video
-                    controls
-                    className="w-full rounded-lg mb-3"
-                    style={{ maxHeight: '200px' }}
-                  >
-                    <source src={apiService.getClipUrl(clipPath)} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                  <a
-                    href={apiService.getClipUrl(clipPath)}
-                    download
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Download Clip
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={handleReset}
-            className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
-            Process Another Video
-          </button>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Render error state
-  const renderError = () => {
-    if (appState === 'error') {
-      return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <span className="text-red-400 text-xl">⚠️</span>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-lg font-medium text-red-800">Error</h3>
-              <p className="text-red-700">{error}</p>
-              <button
-                onClick={handleReset}
-                className="mt-3 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+      {/* Hero Section */}
+      <div className="relative z-10 px-6 py-20">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className={`transform transition-all duration-1000 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
+              Turn Your 
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                {' '}Videos
+              </span>
+              <br />
+              Into Viral 
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Shorts
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+              AI-powered video editing that automatically finds the best moments and creates 
+              engaging short clips optimized for social media
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <Link 
+                href="/create"
+                className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105"
               >
-                Try Again
+                <span className="relative z-10 flex items-center">
+                  Get Started Free
+                  <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </Link>
+              
+              <button className="flex items-center px-8 py-4 text-white border border-slate-500 rounded-2xl hover:border-slate-300 transition-all duration-300 group">
+                <svg className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Watch Demo
               </button>
             </div>
           </div>
         </div>
-      );
-    }
-    return null;
-  };
+      </div>
 
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Status indicators */}
-      {renderStatusIndicator()}
-      {renderResults()}
-      {renderError()}
-
-      {/* Main form - only show when idle or error */}
-      {(appState === 'idle' || appState === 'error') && (
-        <div className="bg-white shadow-xl rounded-lg p-8">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Create Short Clips from YouTube Videos
+      {/* Features Section */}
+      <section id="features" className="relative z-10 px-6 py-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Powerful AI Features
             </h2>
-            <p className="text-gray-600">
-              Enter a YouTube URL and describe what kind of clips you'd like to create.
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+              Cut through hours of content in seconds with our advanced AI technology
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* YouTube URL Input */}
-            <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
-                YouTube URL
-              </label>
-              <input
-                type="url"
-                id="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                required
-              />
-            </div>
-
-            {/* Prompt Input */}
-            <div>
-              <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
-                Clip Creation Prompt
-              </label>
-              <textarea
-                id="prompt"
-                value={formData.prompt}
-                onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                placeholder="Describe what kind of clips you want to create (e.g., 'Create 3 engaging clips highlighting the main points', 'Extract funny moments', etc.)"
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                required
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={!isFormValid || isSubmitting}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Starting Processing...
-                </div>
-              ) : (
-                'Create Clips'
-              )}
-            </button>
-          </form>
-
-          {/* Instructions */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Instructions:</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Paste any YouTube video URL</li>
-              <li>• Describe what kind of clips you want (topics, style, length, etc.)</li>
-              <li>• Processing may take several minutes depending on video length</li>
-              <li>• You'll be able to preview and download the generated clips</li>
-            </ul>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: "🎯",
+                title: "Smart Scene Detection",
+                description: "AI automatically identifies the most engaging moments in your videos"
+              },
+              {
+                icon: "✂️",
+                title: "Automatic Editing",
+                description: "Perfect cuts, transitions, and timing without manual editing"
+              },
+              {
+                icon: "📱",
+                title: "Social Media Ready",
+                description: "Optimized for TikTok, Instagram Reels, and YouTube Shorts"
+              },
+              {
+                icon: "🚀",
+                title: "Lightning Fast",
+                description: "Process hours of content in minutes, not days"
+              },
+              {
+                icon: "🎨",
+                title: "Auto Captions",
+                description: "Generate engaging captions and subtitles automatically"
+              },
+              {
+                icon: "📊",
+                title: "Performance Analytics",
+                description: "Get insights on which clips perform best on social media"
+              }
+            ].map((feature, index) => (
+              <div 
+                key={index}
+                className="group p-8 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-105"
+              >
+                <div className="text-4xl mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
+                <p className="text-slate-300 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+      </section>
+
+      {/* How it Works Section */}
+      <section id="how-it-works" className="relative z-10 px-6 py-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              How It Works
+            </h2>
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+              From long-form content to viral shorts in three simple steps
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            {[
+              {
+                step: "01",
+                title: "Upload Your Video",
+                description: "Simply paste your YouTube URL or upload your video file"
+              },
+              {
+                step: "02", 
+                title: "AI Analysis",
+                description: "Our AI analyzes your content for the most engaging moments"
+              },
+              {
+                step: "03",
+                title: "Download Shorts",
+                description: "Get perfectly edited shorts ready for social media"
+              }
+            ].map((step, index) => (
+              <div key={index} className="text-center relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-6">
+                  {step.step}
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-4">{step.title}</h3>
+                <p className="text-slate-300 leading-relaxed">{step.description}</p>
+                
+                {index < 2 && (
+                  <div className="hidden md:block absolute top-10 left-full w-full">
+                    <div className="flex items-center">
+                      <div className="w-full h-px bg-gradient-to-r from-purple-500 to-transparent"></div>
+                      <svg className="w-6 h-6 text-purple-500 -ml-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 px-6 py-20">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="p-12 rounded-3xl bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-sm border border-white/10">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Ready to Go Viral?
+            </h2>
+            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+              Join thousands of creators who are already using AI to create 
+              engaging short-form content that gets millions of views
+            </p>
+            <Link 
+              href="/create"
+              className="inline-flex items-center px-10 py-5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 text-lg"
+            >
+              Start Creating Now
+              <svg className="ml-3 w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 px-6 py-12 border-t border-white/10">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">YS</span>
+            </div>
+            <span className="text-white font-bold text-xl">YouTube Shorts AI</span>
+          </div>
+          <p className="text-slate-400">
+            © 2024 YouTube Shorts AI. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 } 

@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'YouTube to Shorts',
-  description: 'Convert YouTube videos into engaging short clips',
+  title: 'YouTube Shorts AI - Turn Videos Into Viral Shorts',
+  description: 'AI-powered video editing that automatically finds the best moments and creates engaging short clips optimized for social media',
 }
 
 export default function RootLayout({
@@ -17,24 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-          <header className="bg-white shadow-sm border-b">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center py-6">
-                <div className="flex items-center">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    YouTube to Shorts
-                  </h1>
-                </div>
-                <div className="text-sm text-gray-500">
-                  Convert long videos into engaging clips
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {children}
-          </main>
+        <div className="min-h-screen">
+          {children}
         </div>
       </body>
     </html>
