@@ -95,4 +95,76 @@ The enhanced yt-dlp configuration tries to bypass this, but YouTube's detection 
 3. **Alternative video sources** (100% success rate)
 4. **Local video upload** (100% success rate)
 
-Your infrastructure is ready for all of these solutions! 🎉 
+Your infrastructure is ready for all of these solutions! 🎉
+
+## Setting Up YouTube Cookies
+
+To bypass YouTube's bot detection, you can provide authentication cookies from your browser. This makes yt-dlp appear as if it's your logged-in browser session.
+
+### Method 1: Manual Cookie Export
+
+1. **Open YouTube in your browser** while logged in to your Google account
+2. **Open Developer Tools** (F12 or Ctrl+Shift+I)
+3. **Go to Application/Storage tab** → Cookies → `https://www.youtube.com`
+4. **Copy all cookies** and format them as Netscape format:
+
+```
+# Netscape HTTP Cookie File
+.youtube.com	TRUE	/	TRUE	1784151350	__Secure-1PSID	your_session_token_here
+.youtube.com	TRUE	/	TRUE	1784151350	APISID	your_apisid_here
+# ... more cookies
+```
+
+### Method 2: Browser Extension (Recommended)
+
+1. Install a cookie export extension like "Get cookies.txt" for Chrome/Firefox
+2. Visit YouTube while logged in
+3. Use the extension to export cookies in Netscape format
+4. Copy the content to your environment variable
+
+### Method 3: Command Line Export
+
+If you have browser command line tools:
+
+```bash
+# For Chrome on macOS
+sqlite3 ~/Library/Application\ Support/Google/Chrome/Default/Cookies \
+"SELECT host_key, httponly, path, secure, expires_utc, name, value FROM cookies WHERE host_key LIKE '%youtube%';"
+```
+
+### Setting Up the Environment Variable
+
+Add your cookies to your environment configuration:
+
+```bash
+# In your .env file or deployment environment
+YOUTUBE_COOKIES_CONTENT="# Netscape HTTP Cookie File
+# This is a generated file! Do not edit.
+
+.youtube.com	TRUE	/	TRUE	1784151350	__Secure-1PAPISID	XQh0LBEOWeLpkQix/Amr8c8SofJyyDHyzd
+.google.com	TRUE	/	TRUE	1784151350	__Secure-1PAPISID	XQh0LBEOWeLpkQix/Amr8c8SofJyyDHyzd
+# ... rest of your cookies
+"
+```
+
+### Important Notes:
+
+- **Cookie Expiration**: Cookies expire! You may need to refresh them periodically
+- **Security**: Never share your cookies - they contain authentication tokens
+- **Multiple Accounts**: Use cookies from the account you want to download from
+- **VPN/Location**: Sometimes changing your IP location helps avoid detection
+
+### Testing Your Setup
+
+You can test if cookies work with yt-dlp directly:
+
+```bash
+# Save cookies to file
+echo "$YOUTUBE_COOKIES_CONTENT" > cookies.txt
+
+# Test download
+yt-dlp --cookies cookies.txt "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+
+# Clean up
+rm cookies.txt
+``` 

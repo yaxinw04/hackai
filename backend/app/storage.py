@@ -123,18 +123,28 @@ class S3Storage(StorageBackend):
             # Ensure remote_path doesn't start with /
             remote_path = remote_path.lstrip('/')
             
-            # Upload file with public-read ACL
+            # Upload file without ACL (bucket should have public policy if needed)
             self.s3_client.upload_file(
                 local_path,
                 self.bucket_name,
-                remote_path,
-                ExtraArgs={'ACL': 'public-read'}
+                remote_path
+                # Note: No ACL set - bucket policy should handle public access
             )
             
             return f"{self.base_url}/{remote_path}"
         except Exception as e:
-            print(f"❌ S3 upload failed: {e}")
-            raise
+            error_msg = str(e)
+            print(f"❌ S3 upload failed: {error_msg}")
+            
+            # Provide helpful guidance for common S3 issues
+            if "AccessControlListNotSupported" in error_msg:
+                print("💡 Your S3 bucket has ACLs disabled (good security practice)")
+                print("💡 Make sure your bucket has a public read policy or CloudFront distribution")
+            elif "AccessDenied" in error_msg:
+                print("💡 Check your AWS credentials and bucket permissions")
+                print("💡 Ensure the IAM user has s3:PutObject permission")
+            
+            raise Exception(f"Failed to upload {local_path} to {self.bucket_name}/{remote_path}: {error_msg}")
     
     def download_file(self, remote_path: str, local_path: str) -> bool:
         """Download file from S3"""

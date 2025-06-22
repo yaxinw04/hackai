@@ -110,43 +110,93 @@ def download_youtube_video(url: str, output_path: str) -> str:
         'format': 'best[ext=mp4]/best',
         'outtmpl': output_path,
         'noplaylist': True,
-        'sleep_interval': 1,  # Add delays between requests
-        'max_sleep_interval': 3,
+        'sleep_interval': 2,  # Increased delays between requests
+        'max_sleep_interval': 5,
         'extract_flat': False,
         'ignoreerrors': False,
         'no_warnings': False,
         'writesubtitles': False,
         'writeautomaticsub': False,
-        # Add user agent to appear less bot-like
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        # Enhanced user agent rotation
+        'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         # Retry options
-        'retries': 3,
+        'retries': 5,
         'file_access_retries': 3,
-        'fragment_retries': 3,
+        'fragment_retries': 5,
         # Network options
-        'socket_timeout': 30,
-        # Try to use embedded player
+        'socket_timeout': 60,
+        # Additional anti-bot measures
         'youtube_include_dash_manifest': False,
+        'extractor_retries': 3,
+        'geo_bypass': True,
+        # Headers to appear more browser-like
+        'http_headers': {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        }
     }
+    
+    # Handle cookies if provided
+    cookies_file = None
+    try:
+        from ..config import settings
+        if settings.YOUTUBE_COOKIES_CONTENT or os.getenv('YOUTUBE_COOKIES_CONTENT'):
+            cookies_content = settings.YOUTUBE_COOKIES_CONTENT or os.getenv('YOUTUBE_COOKIES_CONTENT')
+            # Create temporary cookies file
+            import tempfile
+            cookies_fd, cookies_file = tempfile.mkstemp(suffix='.txt', prefix='youtube_cookies_')
+            try:
+                with os.fdopen(cookies_fd, 'w') as f:
+                    f.write(cookies_content)
+                ydl_opts['cookiefile'] = cookies_file
+                print(f"🍪 Using cookies for YouTube authentication")
+            except Exception as e:
+                print(f"⚠️ Failed to write cookies file: {e}")
+                if cookies_file and os.path.exists(cookies_file):
+                    os.unlink(cookies_file)
+                cookies_file = None
+    except Exception as e:
+        print(f"⚠️ Failed to load cookies: {e}")
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            print(f"🔍 Attempting download with enhanced options...")
             ydl.download([url])
+        print(f"✅ Download successful")
         return output_path
     except Exception as e:
         error_msg = str(e)
         print(f"❌ YouTube download failed: {error_msg}")
         
         # Check if it's a bot detection error
-        if "Sign in to confirm" in error_msg or "not a bot" in error_msg:
+        if any(phrase in error_msg.lower() for phrase in [
+            "sign in to confirm", "not a bot", "verify you're human", 
+            "suspicious traffic", "unusual traffic"
+        ]):
             print("🤖 YouTube bot detection triggered")
             print("💡 This is a common issue with YouTube's anti-bot measures")
+            print("💡 Possible solutions:")
+            print("   • Try a different video URL")
+            print("   • Wait a few minutes and try again")
+            print("   • Use a VPN from a different location")
+            print("   • Update your browser cookies")
             print("🎭 Falling back to demo mode...")
             raise Exception(f"YouTube bot detection: {error_msg}")
         else:
             # For other errors, also fall back to demo
             print(f"🎭 Falling back to demo mode due to: {error_msg}")
             raise Exception(f"YouTube download error: {error_msg}")
+    finally:
+        # Clean up cookies file
+        if cookies_file and os.path.exists(cookies_file):
+            try:
+                os.unlink(cookies_file)
+            except Exception:
+                pass
 
 
 def create_video_clip(source_video: str, start_time: float, end_time: float, output_path: str) -> str:

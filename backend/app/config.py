@@ -50,6 +50,9 @@ class Settings:
     MAX_VIDEO_DURATION: int = int(os.getenv("MAX_VIDEO_DURATION", "3600"))  # 1 hour
     MAX_CLIP_COUNT: int = int(os.getenv("MAX_CLIP_COUNT", "10"))
     
+    # YouTube Configuration
+    YOUTUBE_COOKIES_CONTENT: Optional[str] = None
+    
     @property
     def base_url(self) -> str:
         """Get the base URL for video serving"""

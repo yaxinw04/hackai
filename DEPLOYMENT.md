@@ -85,17 +85,47 @@ Before starting, make sure you have:
    - Access Key ID: `AKIA...`
    - Secret Access Key: `wJalr...`
 
-### Step 3: Optional - CloudFront CDN
+### Step 3: Configure Bucket Permissions
 
-**Why CloudFront?** Faster video delivery worldwide and reduced S3 costs.
+Since modern S3 buckets have ACLs disabled for security, you need to set up a bucket policy for public access:
 
-1. **Create CloudFront Distribution:**
-   - Origin Domain: `your-youtube-shorts-videos.s3.amazonaws.com`
-   - Viewer Protocol Policy: Redirect HTTP to HTTPS
-   - Allowed HTTP Methods: GET, HEAD
-   - Cache Policy: CachingOptimized
+1. Go to your bucket → **Permissions** tab
+2. Scroll down to **Bucket policy**
+3. Add this policy (replace `your-bucket-name` with your actual bucket name):
 
-2. **Note the CloudFront URL:** `https://d111111abcdef8.cloudfront.net`
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::your-bucket-name/*"
+        }
+    ]
+}
+```
+
+**Important Security Notes:**
+- This policy makes ALL files in your bucket publicly readable
+- Only put video clips and public assets in this bucket
+- Never store sensitive data, API keys, or personal information in this bucket
+- Consider using CloudFront (CDN) for better security and performance
+
+### Alternative: CloudFront Distribution (Recommended)
+
+For better security and performance, use CloudFront instead of direct S3 public access:
+
+1. Create a CloudFront distribution pointing to your S3 bucket
+2. Keep your bucket private (no bucket policy needed)
+3. Configure Origin Access Control (OAC) in CloudFront
+4. Update your `S3_BUCKET_URL` environment variable to use the CloudFront URL
+
+```bash
+S3_BUCKET_URL=https://your-distribution-id.cloudfront.net
+```
 
 ## 🖥️ Server Deployment Options
 
